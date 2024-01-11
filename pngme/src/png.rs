@@ -1,6 +1,7 @@
+use std::str::FromStr;
 use crate::chunk_type::ChunkType;
 use crate::chunk::Chunk;
-use std::fmt::Display;
+use std::fmt::{Display, write};
 use std::convert::TryFrom;
 
 struct Png {
@@ -11,13 +12,48 @@ impl TryFrom<&[u8]> for Png {
     type Error = &'static str;
 
     fn try_from(value: &[u8]) -> Result<Self, Self::Error> {
-        todo!()
+        let mut stream = value.iter();
+        let header: [u8; 8] = (&mut stream).take(8).copied().collect::<Vec<u8>>().try_into().unwrap();
+
+        if header != Png::STANDARD_HEADER {
+            return Err("invalid header");
+        }
+
+        let mut chunks: Vec<Chunk> = vec![];
+
+        while let Ok(data_length) = (& mut stream).take(4).copied().collect::<Vec<u8>>().try_into() {
+            let data_length = u32::from_be_bytes(data_length);
+
+            
+            let chunk_type_bytes: [u8; 4] = 
+                (&mut stream)
+                    .take(4)
+                    .copied()
+                    .collect::<Vec<u8>>()
+                    .try_into()
+                    .unwrap();
+
+            let chunk_type: ChunkType = ChunkType::try_from(chunk_type_bytes)?;
+
+            let message_bytes: Vec<u8> = (&mut stream).take(data_length as usize).copied().collect();
+
+            let crc = u32::from_be_bytes((& mut stream).take(4).copied().collect::<Vec<u8>>().try_into().unwrap());
+
+            let new_chunk: Chunk = Chunk::new(chunk_type, message_bytes);
+            if new_chunk.crc() == crc {
+                chunks.push(new_chunk);
+            } else {
+                return Err("invalid crc");
+            }
+        }
+
+        Ok(Png{chunks})
     }
 }
 
 impl Display for Png {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        todo!()
+        write!(f, "{:?}{:?}", Self::STANDARD_HEADER, self.chunks())
     }
 }
 
@@ -25,15 +61,28 @@ impl Png {
     const STANDARD_HEADER: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
 
     fn from_chunks(chunks: Vec<Chunk>) -> Png {
-        todo!()
+        Png { chunks }
     }
 
     fn append_chunk(&mut self, chunk: Chunk) {
-        todo!()
+        self.chunks.push(chunk);
     }
 
     fn remove_chunk(&mut self, chunk_type: &str) -> Result<Chunk, Box<dyn std::error::Error>> {
-        todo!()
+        let chunk_type_to_find: &ChunkType = &ChunkType::from_str(chunk_type).unwrap();
+
+        let (drained_chunk, remaining_chunk): (Vec<Chunk>, Vec<Chunk>) = self
+            .chunks()
+            .into_iter()
+            .cloned()
+            .partition(|chunk| chunk.chunk_type() == chunk_type_to_find);
+        
+        if drained_chunk.len() == 1 {
+            self.chunks = remaining_chunk;
+            Ok(drained_chunk.first().unwrap().clone())
+        } else {
+            Err("error removing chunk".into())
+        }
     }
 
     pub fn header(&self) -> &[u8; 8] {
@@ -41,15 +90,25 @@ impl Png {
     }
 
     fn chunks(&self) -> &[Chunk] {
-        todo!()
+        self.chunks.as_slice()
     }
 
     fn chunk_by_type(&self, chunk_type: &str) -> Option<&Chunk> {
-        todo!()
+        self.chunks()
+            .into_iter()
+            .filter(|chunk| 
+                *chunk.chunk_type() == ChunkType::from_str(chunk_type).unwrap())
+            .next()
     }
 
     fn as_bytes(&self) -> Vec<u8> {
-        todo!()
+        let chunk_bytes: Vec<u8> = self.chunks().iter().flat_map(|chunk| chunk.as_bytes()).collect();
+
+        Png::STANDARD_HEADER
+            .iter()
+            .chain(chunk_bytes.iter())
+            .copied()
+            .collect()
     }
 }
 

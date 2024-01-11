@@ -3,6 +3,7 @@ use std::string::FromUtf8Error;
 use std::fmt::Display;
 use crc::crc32::checksum_ieee;
 
+#[derive(Clone, Debug)]
 pub struct Chunk {
     data_length: u32,
     chunk_type: ChunkType,
@@ -71,6 +72,17 @@ impl Chunk {
             .chain(self.crc.to_be_bytes().iter())
             .copied()
             .collect() 
+    }
+
+    pub fn new(chunk_type: ChunkType, message_bytes: Vec<u8>) -> Self {
+        let check_bytes:&[u8] = &[chunk_type.bytes().as_slice(), message_bytes.as_slice()].concat();
+
+        Chunk {
+            data_length: message_bytes.len() as u32,
+            chunk_type,
+            message_bytes,
+            crc: checksum_ieee(check_bytes),
+        }
     }
 }
 
