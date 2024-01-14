@@ -1,10 +1,11 @@
 use std::str::FromStr;
 use crate::chunk_type::ChunkType;
 use crate::chunk::Chunk;
-use std::fmt::{Display, write};
+use std::fmt::Display;
 use std::convert::TryFrom;
 
-struct Png {
+#[derive(Debug)]
+pub struct Png {
     chunks: Vec<Chunk>,
 }
 
@@ -60,15 +61,15 @@ impl Display for Png {
 impl Png {
     const STANDARD_HEADER: [u8; 8] = [137, 80, 78, 71, 13, 10, 26, 10];
 
-    fn from_chunks(chunks: Vec<Chunk>) -> Png {
+    pub fn from_chunks(chunks: Vec<Chunk>) -> Png {
         Png { chunks }
     }
 
-    fn append_chunk(&mut self, chunk: Chunk) {
+    pub fn append_chunk(&mut self, chunk: Chunk) {
         self.chunks.push(chunk);
     }
 
-    fn remove_chunk(&mut self, chunk_type: &str) -> Result<Chunk, Box<dyn std::error::Error>> {
+    pub fn remove_chunk(&mut self, chunk_type: &str) -> Result<Chunk, Box<dyn std::error::Error>> {
         let chunk_type_to_find: &ChunkType = &ChunkType::from_str(chunk_type).unwrap();
 
         let (drained_chunk, remaining_chunk): (Vec<Chunk>, Vec<Chunk>) = self
@@ -93,7 +94,7 @@ impl Png {
         self.chunks.as_slice()
     }
 
-    fn chunk_by_type(&self, chunk_type: &str) -> Option<&Chunk> {
+    pub fn chunk_by_type(&self, chunk_type: &str) -> Option<&Chunk> {
         self.chunks()
             .into_iter()
             .filter(|chunk| 
@@ -101,10 +102,10 @@ impl Png {
             .next()
     }
 
-    fn as_bytes(&self) -> Vec<u8> {
+    pub fn as_bytes(&self) -> Vec<u8> {
         let chunk_bytes: Vec<u8> = self.chunks().iter().flat_map(|chunk| chunk.as_bytes()).collect();
 
-        Png::STANDARD_HEADER
+        self.header()
             .iter()
             .chain(chunk_bytes.iter())
             .copied()

@@ -14,12 +14,18 @@ impl TryFrom<[u8; 4]> for ChunkType {
     type Error = &'static str;
 
     fn try_from(value: [u8; 4]) -> Result<Self, Self::Error> {
-        Ok(ChunkType {
+        let chunk_type = ChunkType {
             first_byte: value[0],
             second_byte: value[1],
             third_byte: value[2],
             fourth_byte: value[3],
-        })
+        };
+
+        if chunk_type.is_valid() {
+            Ok(chunk_type)
+        } else {
+            Err("Not a valid Chunk Byte")
+        }
     }
 }
 
@@ -35,10 +41,7 @@ impl FromStr for ChunkType {
             fourth_byte: *bytes.get(3).unwrap(),
         };
 
-        if ChunkType::is_valid_byte(&result.first_byte)
-        && ChunkType::is_valid_byte(&result.second_byte)
-        && ChunkType::is_valid_byte(&result.third_byte)
-        && ChunkType::is_valid_byte(&result.fourth_byte) {
+        if result.is_valid() {
             return Ok(result);
         }
         Err("Not a valid Chunk Byte")
