@@ -1,1 +1,0 @@
-/Users/joonkim/coding/Rust/PNGme/pngme/target/debug/pngme: /Users/joonkim/coding/Rust/PNGme/pngme/src/args.rs /Users/joonkim/coding/Rust/PNGme/pngme/src/chunk.rs /Users/joonkim/coding/Rust/PNGme/pngme/src/chunk_type.rs /Users/joonkim/coding/Rust/PNGme/pngme/src/commands.rs /Users/joonkim/coding/Rust/PNGme/pngme/src/main.rs /Users/joonkim/coding/Rust/PNGme/pngme/src/png.rs
